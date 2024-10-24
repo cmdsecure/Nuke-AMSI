@@ -1,24 +1,3 @@
-# ASCII Art Banner
-$banner = @'
-
-             _         ___ ___  ________ _____ 
-            | |       / _ \|  \/  /  ___|_   _|
- _ __  _   _| | _____/ /_\ \ .  . \ `--.  | |  
-| '_ \| | | | |/ / _ \  _  | |\/| |`--. \ | |  
-| | | | |_| |   <  __/ | | | |  | /\__/ /_| |_ 
-|_| |_|\__,_|_|\_\___\_| |_|_|  |_|____/ \___/ 
-                                               
-                                               
-                                             
----------------------------------------------------------------
- Developed by Abhishek Sharma | Date: 10/08/24
- Created for educational purposes only
----------------------------------------------------------------
-'@
-
-Write-Host $banner -ForegroundColor Green
-
-
 # Prompt the user for confirmation
 $confirmation = Read-Host "Are you ready to nuke AMSI from this shell? Press Enter to continue"
 
